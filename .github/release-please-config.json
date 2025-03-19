@@ -25,7 +25,7 @@
     ],
     "packages": {
         ".": {
-            "component": "<% REPO_NAME %>",
+            "component": ""test-go"",
             "release-type": "node",
             "release-as": "",
             "changelog-path": "CHANGELOG.md",

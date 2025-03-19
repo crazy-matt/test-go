@@ -27,7 +27,7 @@ jobs:
       - name: Check previous version
         id: check_previous_version
         run: |
-          previous_version=$(gh release list --repo <% REPO_OWNER %>/<% REPO_NAME %> --limit 2 | tail -n 1 | awk '{print $1}')
+          previous_version=$(gh release list --repo "crazy-matt"/"test-go" --limit 2 | tail -n 1 | awk '{print $1}')
           echo "version=${previous_version}" >> $GITHUB_OUTPUT
           echo "Can check what version is hosted before deployment to get a more accurate response than just getting the last to second release"
       - name: Deploy

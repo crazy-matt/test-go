@@ -1,4 +1,4 @@
-# <% REPO_NAME %>
+# test-go
 
 ## Development
 
@@ -14,7 +14,7 @@ For a simpler and quicker start:
 ### Push a change
 
 ```bash
-git clone https://github.com/<% REPO_OWNER %>/<% REPO_NAME %>.git
+git clone https://github.com/crazy-matt/test-go.git
 task setup
 # make your change...
 yarn test
