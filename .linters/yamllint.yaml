@@ -1,0 +1,25 @@
+# Ref: https://yamllint.readthedocs.io/en/stable/configuration.html
+---
+extends: default
+ignore: |
+  **.github/workflows/**
+  **.history/**
+  **tests/libs/**
+rules:
+  line-length: disable
+  indentation:
+    spaces: 2
+    indent-sequences: true
+  truthy:
+    allowed-values:
+      - 'true'
+      - 'false'
+      - 'on'
+  quoted-strings:
+    quote-type: any
+    required: false
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+  comments: disable
+  comments-indentation: disable

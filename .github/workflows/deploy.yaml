@@ -1,0 +1,36 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to deploy
+        required: true
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy ${{ env.VERSION_TO_DEPLOY }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    env:
+      VERSION_TO_DEPLOY: ${{ github.event.inputs.version || github.ref_name }}
+    outputs:
+      previous_version: ${{ steps.check_previous_version.outputs.version }}
+    steps:
+      - name: Check previous version
+        id: check_previous_version
+        run: |
+          previous_version=$(gh release list --repo <% REPO_OWNER %>/<% REPO_NAME %> --limit 2 | tail -n 1 | awk '{print $1}')
+          echo "version=${previous_version}" >> $GITHUB_OUTPUT
+          echo "Can check what version is hosted before deployment to get a more accurate response than just getting the last to second release"
+      - name: Deploy
+        id: deploy
+        run: |
+          echo "Deployment logic to be implemented here ( ${{ env.VERSION_TO_DEPLOY }} )"

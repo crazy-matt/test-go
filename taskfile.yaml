@@ -1,0 +1,83 @@
+# https://taskfile.dev
+# A modern replacement for Makefile
+---
+version: "3"
+silent: true
+
+includes:
+  docker:
+    taskfile: ./taskfile.docker.yaml
+    dir: ./docker
+  lint:
+    taskfile: ./taskfile.lint.yaml
+  sec:
+    taskfile: ./taskfile.security.yaml
+
+tasks:
+  default:
+    cmds:
+      - task --list
+
+  clean:
+    desc: Clean and tidy go.mod and go.sum
+    cmds:
+      - echo "📒  {{.TASK}}"
+      - go clean -i ./...
+      - \rm -f ~/.local/bin/$(basename $(pwd))
+
+  tidy:
+    desc: Ensure go.mod and go.sum are tidy
+    cmds:
+      - echo "📒  {{.TASK}}"
+      - go mod tidy
+      - git diff --exit-code go.mod go.sum
+    ignore_error: true
+
+  test:
+    desc: Run tests
+    cmds:
+      - echo "📒  {{.TASK}}"
+      - task lint
+      - task tidy
+      - go test ./...
+
+  build:
+    desc: Build the app
+    cmds:
+      - task test
+      - go build -o bin/$(basename $(pwd)) ./...
+
+
+
+
+  setup:
+    desc: Initialize the development environment
+    silent: false
+    cmds:
+      - echo "🚀 Installing base tools using mise..."
+      - mise install
+      - echo "✅ Enabling corepack for Yarn..."
+      - corepack enable
+      - echo "🔄 Ensuring Yarn is installed and activated..."
+      - corepack prepare yarn@stable --activate
+      - yarn set version stable
+      - yarn config set nodeLinker node-modules
+      - echo "📦 Installing project dependencies..."
+      - if [ -f yarn.lock ]; then yarn install --immutable; else yarn install; fi
+      - echo "🔍 Running initial security & linting checks..."
+      - task lint
+      - task sec
+      - echo "🎉 Dev environment setup complete!"
+
+  getready:
+    desc: Run linting/formatting/testing
+    silent: false
+    cmds:
+      - task: sec
+      - task: lint
+      - yarn install
+      - yarn format
+      - yarn lint:fix
+      - yarn test
+      - yarn build
+      - yarn gendoc
