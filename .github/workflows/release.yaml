@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 1
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
 
       - uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8
         with:
@@ -75,7 +75,7 @@ jobs:
             arch: arm64
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
 
       - name: Get versions
         run: |
@@ -83,7 +83,7 @@ jobs:
           echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # ratchet:actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
 
@@ -94,7 +94,7 @@ jobs:
         shell: bash
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: proton_${{ matrix.os }}_${{ matrix.arch }}
           path: proton_${{ matrix.os }}_${{ matrix.arch }}*
@@ -111,7 +111,7 @@ jobs:
         run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # ratchet:actions/download-artifact@v4
       - name: Generate SHA256SUMS
         run: |
           ls -lna
@@ -123,7 +123,7 @@ jobs:
 
       - name: Create Release
         id: release
-        uses: actions/create-release@v1
+        uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e # ratchet:actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -134,7 +134,7 @@ jobs:
 
       - name: Upload Release Assets
         id: upload_assets
-        uses: AButler/upload-release-assets@v3.0
+        uses: AButler/upload-release-assets@3d6774fae0ed91407dc5ae29d576b166536d1777 # ratchet:AButler/upload-release-assets@v3.0
         with:
           files: 'artifacts/SHA256SUMS;artifacts/proton_*'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
