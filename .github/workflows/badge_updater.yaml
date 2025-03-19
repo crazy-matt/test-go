@@ -13,12 +13,42 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 1
     steps:
+      - name: Validate inputs
+        id: validate
+        run: |
+          if [[ -z "${{ github.event.client_payload.icon_width }}" ]] || [[ ! "${{ github.event.client_payload.icon_width }}" =~ ^[0-9]+$ ]]; then
+            echo "Invalid icon_width" >&2
+            exit 1
+          fi
+          if [[ ! "${{ github.event.client_payload.label }}" =~ ^[a-zA-Z0-9_\ -]+$ ]]; then
+            echo "Invalid label format - must contain only alphanumeric characters, spaces, underscores, or hyphens" >&2
+            exit 1
+          fi
+          lowercase_label=$(echo "${{ github.event.client_payload.label }}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+          if [[ "${{ github.event.client_payload.path }}" != "${lowercase_label}.svg" ]]; then
+            echo "Invalid path value" >&2
+            exit 1
+          fi
+          if [[ ! "${{ github.event.client_payload.label_color }}" =~ ^($VALID_LABEL_COLORS)$ ]] || [[ -z "${{ github.event.client_payload.label_color }}" ]]; then
+            echo "Invalid label_color" >&2
+            exit 1
+          fi
+          if [[ ! "${{ github.event.client_payload.status }}" =~ ^[a-zA-Z0-9_\ -]+$ ]]; then
+            echo "Invalid status format - must contain only alphanumeric characters, spaces, underscores, or hyphens" >&2
+            exit 1
+          fi
+          if [[ ! "${{ github.event.client_payload.status_color }}" =~ ^($VALID_STATUS_COLORS)$ ]] || [[ -z "${{ github.event.client_payload.status_color }}" ]]; then
+            echo "Invalid status_color" >&2
+            exit 1
+          fi
+        env:
+          VALID_LABEL_COLORS: '555'
+          VALID_STATUS_COLORS: 'red|green|blue|yellow|orange|purple|cyan|magenta|lime|pink|teal|lavender|brown|beige|maroon|mint|olive|coral|navy|grey|gray|black|white|success|important|critical|informational|inactive|lightgrey|gray|lightgray'
       - name: Checkout repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
         with:
           token: ${{ secrets.BOT_TOKEN }}
           fetch-depth: 0
-
       - name: Prepare badges branch
         run: |
           if git ls-remote --exit-code origin badges; then
@@ -27,7 +57,6 @@ jobs:
             git switch --orphan badges
             [[ -z "$(git ls-files)" ]] || git rm -rf .
           fi
-
       - name: Create badge
         uses: emibcn/badge-action@808173dd03e2f30c980d03ee49e181626088eee8 # ratchet:emibcn/badge-action@v2
         # Use https://www.svgviewer.dev/svg-to-data-uri to get a data URI
@@ -39,7 +68,6 @@ jobs:
           status: ${{ github.event.client_payload.status }}
           color: ${{ github.event.client_payload.status_color }}
           path: ${{ github.event.client_payload.path }}
-
       - name: Push changes
         env:
           BADGE_LABEL: ${{ github.event.client_payload.label }}
