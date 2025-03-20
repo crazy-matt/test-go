@@ -39,37 +39,43 @@ jobs:
           script: |
             const { promises: fs } = require('fs');
             const path = require('path');
-            const glob = require('@actions/glob');
+            const globLib = require('@actions/glob');
             async function fileExists(patterns, ignore = ['**/node_modules/**']) {
-              const globber = await glob.create(patterns.join('\n'), { ignore: ignore.join('\n') });
+              const globber = await globLib.create(patterns.join('\n'), { ignore: ignore.join('\n') });
               const files = await globber.glob();
               return files.length > 0;
             }
-            const languages = [];
-            if (await fileExists(['.github/workflows/**/*.yml', '.github/workflows/**/*.yaml'])) {
-              languages.push({ language: 'actions', 'build-mode': 'none' });
+            async function run() {
+              const languages = [];
+              if (await fileExists(['.github/workflows/**/*.yml', '.github/workflows/**/*.yaml'])) {
+                languages.push({ language: 'actions', 'build-mode': 'none' });
+              }
+              if (await fileExists(['**/package.json', '**/tsconfig.json', '**/*.ts'])) {
+                languages.push({ language: 'javascript-typescript', 'build-mode': 'none' });
+              }
+              if (await fileExists(['**/go.mod', '**/*.go'], ['**/vendor/**'])) {
+                languages.push({ language: 'go', 'build-mode': 'none' });
+              }
+              if (await fileExists(['**/requirements.txt', '**/setup.py', '**/pyproject.toml'],
+                ['**/node_modules/**', '**/.venv/**'])) {
+                languages.push({ language: 'python', 'build-mode': 'none' });
+              }
+              if (await fileExists(['**/pom.xml', '**/build.gradle', '**/build.gradle.kts'])) {
+                languages.push({ language: 'java', 'build-mode': 'none' });
+              }
+              if (await fileExists(['**/CMakeLists.txt', '**/Makefile', '**/configure'])) {
+                languages.push({ language: 'cpp', 'build-mode': 'none' });
+              }
+              if (await fileExists(['**/*.csproj', '**/*.sln'])) {
+                languages.push({ language: 'csharp', 'build-mode': 'none' });
+              }
+              console.log(`Detected languages: ${JSON.stringify(languages)}`);
+              core.setOutput('languages', JSON.stringify(languages));
             }
-            if (await fileExists(['**/package.json', '**/tsconfig.json', '**/*.ts'])) {
-              languages.push({ language: 'javascript-typescript', 'build-mode': 'none' });
-            }
-            if (await fileExists(['**/go.mod', '**/*.go'], ['**/vendor/**'])) {
-              languages.push({ language: 'go', 'build-mode': 'none' });
-            }
-            if (await fileExists(['**/requirements.txt', '**/setup.py', '**/pyproject.toml'],
-              ['**/node_modules/**', '**/.venv/**'])) {
-              languages.push({ language: 'python', 'build-mode': 'none' });
-            }
-            if (await fileExists(['**/pom.xml', '**/build.gradle', '**/build.gradle.kts'])) {
-              languages.push({ language: 'java', 'build-mode': 'none' });
-            }
-            if (await fileExists(['**/CMakeLists.txt', '**/Makefile', '**/configure'])) {
-              languages.push({ language: 'cpp', 'build-mode': 'none' });
-            }
-            if (await fileExists(['**/*.csproj', '**/*.sln'])) {
-              languages.push({ language: 'csharp', 'build-mode': 'none' });
-            }
-            console.log(`Detected languages: ${JSON.stringify(languages)}`);
-            core.setOutput('languages', JSON.stringify(languages));
+            run().catch(error => {
+              console.error(error);
+              core.setFailed(error);
+            });
 
   code_ql:
     name: Analyze (${{ matrix.language }})
