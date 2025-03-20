@@ -14,6 +14,9 @@ concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     name: Deploy ${{ env.VERSION_TO_DEPLOY }}

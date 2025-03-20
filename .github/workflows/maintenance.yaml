@@ -4,15 +4,115 @@ name: Maintenance
 #
 
 on:
+  workflow_dispatch:
+    inputs:
+      job:
+        description: Job to run
+        type: choice
+        options:
+          - Pin Actions and Docker images
+        required: false
+        default: Pin Actions and Docker images
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
+  # For Branch-Protection check. Only the default branch is supported.
+  # https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection
+  branch_protection_rule:
+  schedule:
+    - cron: '15 12 1-7 * 5'  # first Friday of each month
+
+permissions:
+  contents: read
 
 jobs:
+  pin_actions_and_docker_images:
+    name: Pin Actions and Docker images
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    if: |
+      github.event.inputs.job == 'Pin Actions and Docker images' ||
+      github.event_name == 'push'
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
+        with:
+          egress-policy: audit
+      - name: Checkout repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
+        with:
+          token: ${{ secrets.BOT_TOKEN }}
+          ref: ${{ github.head_ref || github.ref_name }}
+      - name: Check for workflow file changes
+        id: filter
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # ratchet:dorny/paths-filter@v3
+        with:
+          filters: |
+            workflows:
+              - '.github/workflows/**'
+      - name: Set up Go
+        if: steps.filter.outputs.workflows == 'true'
+        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # ratchet:actions/setup-go@v5
+        with:
+          go-version: 1.23
+      - name: Install Ratchet
+        if: steps.filter.outputs.workflows == 'true'
+        run: go install github.com/sethvargo/ratchet@ee93c849418d0b9316703bb349055a4078ad205e # ratchet:v0.10.2
+      - name: Pin
+        if: steps.filter.outputs.workflows == 'true'
+        run: ratchet pin $(ls .github/workflows/*.{yaml,yml} 2>/dev/null)
+      - name: Push changes
+        if: steps.filter.outputs.workflows == 'true'
+        env:
+          COMMIT_MESSAGE: "ci: pin actions and Docker images in workflows [skip ci]"
+        run: |
+          if [[ -n $(git status --porcelain) ]]; then
+            gpg --import <(echo "${{ secrets.BOT_GPG_PRIVATE_KEY_BASE64 }}" | base64 -d)
+            git config user.name "gha-bot"
+            git config user.email "gha-bot.noreply.wdx1x@tenet.pm"
+            git config user.signingkey "ABD02F54EDDADCB6"
+            git config commit.gpgsign true
+            git status --porcelain
+            git commit -am "$COMMIT_MESSAGE"
+            git push
+          else
+            echo "No changes to commit."
+          fi
+
+  ossf_scorecard_analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    if: github.event_name == 'branch_protection_rule' || github.event_name == 'schedule'
+    permissions:
+      security-events: write
+      id-token: write
+      contents: read
+      actions: read
+    steps:
+      - name: Run analysis
+        uses: ossf/scorecard-action@v2.4.1
+        with:
+          results_file: ossf-scorecard.sarif
+          results_format: sarif
+          publish_results: true
+      - name: Upload artifact
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # ratchet:actions/upload-artifact@v4
+        with:
+          name: OSSF Scorecard
+          path: ossf-scorecard.sarif
+          retention-days: 31
+      - name: Upload to code-scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ossf-scorecard.sarif
+
   dependabot_automerger:
     name: Dependabot Automerger
     runs-on: ubuntu-latest
     timeout-minutes: 1
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
     permissions:
       contents: write
       pull-requests: write

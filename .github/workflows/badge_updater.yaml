@@ -7,12 +7,19 @@ on:
   repository_dispatch:
     types: [badge-update]
 
+permissions:
+  contents: read
+
 jobs:
   badge_file_updater:
     name: Update Badge ${{ github.event.client_payload.label }}
     runs-on: ubuntu-latest
     timeout-minutes: 1
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
+        with:
+          egress-policy: audit
       - name: Validate inputs
         id: validate
         run: |

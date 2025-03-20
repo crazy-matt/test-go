@@ -1,0 +1,126 @@
+name: SAST
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '!**'
+      - '.github/workflows/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'yarn.lock'
+      - 'tsconfig.json'
+      - 'tsconfig.test.json'
+      - '**/*.js'
+      - '**/*.ts'
+      - '**/*.tsx'
+      - '**/*.jsx'
+      - 'go.mod'
+      - 'go.sum'
+      - '**/*.go'
+  schedule:
+    - cron: '15 12 */14 * 5'  # every 2 weeks on Friday at 12:15 PM
+
+jobs:
+  language_detection:
+    name: Detect Languages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      languages: ${{ steps.detect.outputs.languages }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
+      - name: Detect languages
+        id: detect
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # ratchet:actions/github-script@v7
+        with:
+          script: |
+            const { promises: fs } = require('fs');
+            const path = require('path');
+            const glob = require('@actions/glob');
+            async function fileExists(patterns, ignore = ['**/node_modules/**']) {
+              const globber = await glob.create(patterns.join('\n'), { ignore: ignore.join('\n') });
+              const files = await globber.glob();
+              return files.length > 0;
+            }
+            const languages = [];
+            if (await fileExists(['.github/workflows/**/*.yml', '.github/workflows/**/*.yaml'])) {
+              languages.push({ language: 'actions', 'build-mode': 'none' });
+            }
+            if (await fileExists(['**/package.json', '**/tsconfig.json', '**/*.ts'])) {
+              languages.push({ language: 'javascript-typescript', 'build-mode': 'none' });
+            }
+            if (await fileExists(['**/go.mod', '**/*.go'], ['**/vendor/**'])) {
+              languages.push({ language: 'go', 'build-mode': 'none' });
+            }
+            if (await fileExists(['**/requirements.txt', '**/setup.py', '**/pyproject.toml'],
+              ['**/node_modules/**', '**/.venv/**'])) {
+              languages.push({ language: 'python', 'build-mode': 'none' });
+            }
+            if (await fileExists(['**/pom.xml', '**/build.gradle', '**/build.gradle.kts'])) {
+              languages.push({ language: 'java', 'build-mode': 'none' });
+            }
+            if (await fileExists(['**/CMakeLists.txt', '**/Makefile', '**/configure'])) {
+              languages.push({ language: 'cpp', 'build-mode': 'none' });
+            }
+            if (await fileExists(['**/*.csproj', '**/*.sln'])) {
+              languages.push({ language: 'csharp', 'build-mode': 'none' });
+            }
+            console.log(`Detected languages: ${JSON.stringify(languages)}`);
+            core.setOutput('languages', JSON.stringify(languages));
+
+  code_ql:
+    name: Analyze (${{ matrix.language }})
+    # - https://gh.io/recommended-hardware-resources-for-running-codeql
+    # - https://gh.io/using-larger-runners
+    runs-on: ubuntu-latest
+    needs: [language_detection]
+    permissions:
+      security-events: write
+      # required to fetch internal or private CodeQL packs
+      packages: read
+      # only required for workflows in private repositories
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        # https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/customizing-your-advanced-setup-for-code-scanning#changing-the-languages-that-are-analyzed
+        # https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/codeql-code-scanning-for-compiled-languages
+        include: ${{ fromJSON(needs.language_detection.outputs.languages) }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+        # If you wish to specify custom queries, you can do so here or in a config file.
+        # By default, queries listed here will override any specified in a config file.
+        # Prefix the list here with "+" to use these queries and those in the config file.
+        # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
+        # queries: security-extended,security-and-quality
+        #
+        # If the analyze step fails for one of the languages you are analyzing with
+        # "We were unable to automatically build your code", modify the matrix above
+        # to set the build mode to "manual" for that language. Then modify this step
+        # to build your code.
+        # ℹ️ Command-line programs to run using the OS shell.
+        # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
+      - name: Manual build
+        if: matrix.build-mode == 'manual'
+        shell: bash
+        run: |
+          case "${{ matrix.language }}" in
+            *)
+              echo "No manual build support yet"
+              exit 1
+              ;;
+          esac
+      - name: Perform analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{matrix.language}}'
