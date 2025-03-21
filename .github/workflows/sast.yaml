@@ -45,11 +45,8 @@ jobs:
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # ratchet:actions/github-script@v7
         with:
           script: |
-            const { promises: fs } = require('fs');
-            const path = require('path');
-            const globLib = require('@actions/glob');
             async function fileExists(patterns, ignore = ['**/node_modules/**']) {
-              const globber = await globLib.create(patterns.join('\n'), { ignore: ignore.join('\n') });
+              const globber = await glob.create(patterns.join('\n'), { ignore: ignore.join('\n') });
               const files = await globber.glob();
               return files.length > 0;
             }
