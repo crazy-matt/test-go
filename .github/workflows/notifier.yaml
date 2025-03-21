@@ -11,6 +11,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  TRIGGERING_SHA: ${{ github.event.workflow_run.head_sha }}
+
 permissions: {}
 
 jobs:
@@ -25,17 +28,24 @@ jobs:
       contents: read
       actions: read
     steps:
+      - name: Validate inputs
+        id: validate
+        run: |
+          if [[ ! "${TRIGGERING_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Invalid workflow_run payload - head_sha must be a 40 character hexadecimal string" >&2
+            exit 1
+          fi
       - name: Checkout repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
         with:
           fetch-depth: 0 # Ensure we fetch all history to get all commits
-          ref: ${{ github.event.repository.default_branch }}
+          ref: main
       - name: Check workflows statuses
         id: check_statuses
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          monitored_workflows=$(gh run list --commit "${{ github.event.workflow_run.head_sha }}" --json databaseId,name,url,status,conclusion | jq -c '[.[] | select(.name != "Notifier")]')
+          monitored_workflows=$(gh run list --commit "${TRIGGERING_SHA}" --json databaseId,name,url,status,conclusion | jq -c '[.[] | select(.name != "Notifier")]')
           not_completed_count=$(echo "${monitored_workflows}" | jq '[.[] | select(.status != "completed")] | length')
           failure_count=$(echo "${monitored_workflows}" | jq '[.[] | select(.conclusion != "success" and .conclusion != "skipped" and .conclusion != "cancelled")] | length')
           if [[ ${not_completed_count} -eq 0 && ${failure_count} -ne 0 ]]; then
@@ -91,6 +101,6 @@ jobs:
             --form-string "token=${{ secrets.PUSHOVER_API_TOKEN }}" \
             --form-string "user=${{ secrets.PUSHOVER_USER_KEY }}" \
             --form-string "message=${message}" \
-            --form-string "title=${{ github.repository }} GHA Failures ($(echo "${{ github.event.workflow_run.head_sha }}" | cut -c1-7))" \
+            --form-string "title=${{ github.repository }} GHA Failures ($(echo "${TRIGGERING_SHA}" | cut -c1-7))" \
             --form-string "url=https://github.com/${{ github.repository }}/actions" \
             https://api.pushover.net/1/messages.json
