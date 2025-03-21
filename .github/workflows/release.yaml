@@ -28,7 +28,7 @@ jobs:
 
       - uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8
         with:
-          install_args: task
+          install_args: task markdownlint-cli2 shellcheck yamllint
 
       - name: Run tests
         id: test

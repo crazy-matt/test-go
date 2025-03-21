@@ -86,7 +86,7 @@ jobs:
     name: Scorecard analysis
     runs-on: ubuntu-latest
     timeout-minutes: 1
-    if: github.event_name == 'branch_protection_rule' || github.event_name == 'schedule'
+    if: github.event_name == 'branch_protection_rule' || github.event_name == 'push' || github.event_name == 'schedule'
     permissions:
       contents: read
       actions: read
