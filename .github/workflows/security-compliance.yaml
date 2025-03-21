@@ -85,7 +85,7 @@ jobs:
       github.event.inputs.job == 'Vulnerability Scan' ||
       github.actor != 'dependabot[bot]'
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
       actions: write
       security-events: write
