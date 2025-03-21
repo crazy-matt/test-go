@@ -15,8 +15,6 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
-  id-token: write
 
 jobs:
   deploy:
@@ -27,6 +25,9 @@ jobs:
       VERSION_TO_DEPLOY: ${{ github.event.inputs.version || github.ref_name }}
     outputs:
       previous_version: ${{ steps.check_previous_version.outputs.version }}
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Harden the runner
         uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0

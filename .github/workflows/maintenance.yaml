@@ -24,7 +24,6 @@ on:
     - cron: '15 12 1-7 * 5' # first Friday of each month
 
 permissions:
-  contents: none
 
 jobs:
   pin_actions_and_docker_images:

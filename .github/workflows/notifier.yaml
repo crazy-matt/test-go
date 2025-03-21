@@ -12,8 +12,6 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: none
-  id-token: write
 
 jobs:
   check_workflows:
@@ -56,6 +54,8 @@ jobs:
     needs: [check_workflows]
     timeout-minutes: 1
     if: needs.check_workflows.outputs.need_reporting == 'true'
+    permissions:
+      id-token: write
     steps:
       - name: Harden the runner
         uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
