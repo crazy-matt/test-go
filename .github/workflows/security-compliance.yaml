@@ -85,7 +85,7 @@ jobs:
       github.event.inputs.job == 'Vulnerability Scan' ||
       github.actor != 'dependabot[bot]'
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
       actions: write
       security-events: write
@@ -104,6 +104,7 @@ jobs:
           scan-type: fs
           github-pat: ${{ secrets.GITHUB_TOKEN }}
           format: github
+          output: sbom.json
           trivy-config: .security/trivy.yaml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
