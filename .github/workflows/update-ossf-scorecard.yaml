@@ -1,4 +1,4 @@
-name: OSSF Scorecard Analysis
+name: Update OSSF Scorecard
 
 on:
   workflow_dispatch:

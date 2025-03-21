@@ -108,7 +108,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Detect new vulnerabilities
-        #if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request'
         uses: AikidoSec/github-actions-workflow@47d83dbcf3e6635044c4b31cef590c1e095217cc # ratchet:AikidoSec/github-actions-workflow@v1.0.13
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
