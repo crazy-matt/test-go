@@ -23,7 +23,7 @@ on:
   schedule:
     - cron: '15 12 1-7 * 5' # first Friday of each month
 
-permissions:
+permissions: {}
 
 jobs:
   pin_actions_and_docker_images:

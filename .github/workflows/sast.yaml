@@ -21,7 +21,7 @@ on:
   schedule:
     - cron: '15 12 */14 * 5' # every 2 weeks on Friday at 12:15 PM
 
-permissions:
+permissions: {}
 
 jobs:
   language_detection:
