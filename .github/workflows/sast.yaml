@@ -21,15 +21,24 @@ on:
   schedule:
     - cron: '15 12 */14 * 5' # every 2 weeks on Friday at 12:15 PM
 
+permissions:
+  contents: none
+
 jobs:
   language_detection:
     name: Detect Languages
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     outputs:
       languages: ${{ steps.detect.outputs.languages }}
     steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
+        with:
+          policy: default
+          egress-policy: audit
       - name: Checkout repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Detect languages
@@ -84,12 +93,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: [language_detection]
     permissions:
+      # only required for workflows in private repositories
+      contents: read
+      actions: read
       security-events: write
       # required to fetch internal or private CodeQL packs
       packages: read
-      # only required for workflows in private repositories
-      actions: read
-      contents: read
     strategy:
       fail-fast: false
       matrix:

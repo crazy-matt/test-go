@@ -8,7 +8,8 @@ on:
     types: [badge-update]
 
 permissions:
-  contents: read
+  contents: none
+  id-token: write
 
 jobs:
   badge_file_updater:

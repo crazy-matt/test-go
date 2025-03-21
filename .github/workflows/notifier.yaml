@@ -12,7 +12,8 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: none
+  id-token: write
 
 jobs:
   check_workflows:
@@ -23,8 +24,8 @@ jobs:
       failed_workflows: ${{ steps.check_statuses.outputs.failed_workflows }}
       disabled_workflows: ${{ steps.check_statuses.outputs.disabled_workflows }}
     permissions:
-      actions: read
       contents: read
+      actions: read
     steps:
       - name: Checkout repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
@@ -56,6 +57,11 @@ jobs:
     timeout-minutes: 1
     if: needs.check_workflows.outputs.need_reporting == 'true'
     steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
+        with:
+          policy: default
+          egress-policy: audit
       - name: Send Pushover notification
         run: |
           message="The following workflows have failed:"
